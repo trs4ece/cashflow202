@@ -10,9 +10,10 @@
     <base href="/" />
     <title>Cashflow 202 Tracker</title>
     <ResourcePreloader />
-    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["CashFlow202.Web.styles.css"]" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="CashFlow202.Web.styles.css" />
+    <link rel="manifest" href="manifest.json" />
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
@@ -21,6 +22,7 @@
 <body>
     <Routes />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script>navigator.serviceWorker?.register('service-worker.js');</script>
 </body>
 
 </html>

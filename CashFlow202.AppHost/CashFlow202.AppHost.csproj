@@ -5,10 +5,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <IsAspireHost>true</IsAspireHost>
+    <RootNamespace>CashFlow202.AppHost</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Aspire ships as NuGet packages on .NET 10 (no workload required) -->
     <PackageReference Include="Aspire.Hosting.AppHost" Version="9.3.1" />
   </ItemGroup>
 

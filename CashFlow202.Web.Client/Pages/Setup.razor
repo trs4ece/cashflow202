@@ -1,5 +1,4 @@
 @page "/"
-@rendermode InteractiveWebAssembly
 @inject GameStateService GameSvc
 @inject NavigationManager Nav
 
@@ -28,7 +27,7 @@
             <button class="profession-btn @(GameSvc.State.Profession.Name == prof.Name ? "selected" : "")"
                     @onclick="() => SelectProfession(prof)">
                 <div class="prof-name">@prof.Name</div>
-                <div class="prof-salary">Salary: $@prof.Salary.ToString("N0") | Cash Flow: $@((prof.Salary - prof.Taxes - prof.MortgageOrRent - prof.SchoolLoanPayment - prof.CarPayment - prof.CreditCardPayment - prof.RetailDebtPayment - prof.OtherExpenses - (prof.NumberOfChildren * prof.CostPerChild)).ToString("N0"))</div>
+                <div class="prof-salary">Salary: $@prof.Salary.ToString("N0") | Cash Flow: $@prof.MonthlyCashFlow.ToString("N0")</div>
             </button>
         }
     </div>

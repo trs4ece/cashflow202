@@ -1,4 +1,3 @@
-using CashFlow202.Web.Client.Pages;
 using CashFlow202.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);

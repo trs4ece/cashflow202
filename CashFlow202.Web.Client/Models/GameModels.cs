@@ -21,6 +21,12 @@ public class Profession
     public int HomeMortgageBalance { get; set; }
     public int NumberOfChildren { get; set; }
     public int CostPerChild { get; set; }
+
+    /// <summary>Starting monthly cash flow based on the profession card values.</summary>
+    public int MonthlyCashFlow =>
+        Salary - Taxes - MortgageOrRent - SchoolLoanPayment - CarPayment
+        - CreditCardPayment - RetailDebtPayment - OtherExpenses
+        - (NumberOfChildren * CostPerChild);
 }
 
 // ─── Real-Estate / Small Deal ──────────────────────────────────────────────────
