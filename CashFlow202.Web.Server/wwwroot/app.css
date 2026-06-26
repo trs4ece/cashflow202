@@ -1,0 +1,393 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cashflow 202 Tracker – Mobile-First Styles
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --cf-green:        #2d6a4f;
+    --cf-green-light:  #40916c;
+    --cf-green-pale:   #d8f3dc;
+    --cf-gold:         #f4a261;
+    --cf-gold-dark:    #e76f51;
+    --cf-red:          #c1121f;
+    --cf-blue:         #023e8a;
+    --cf-gray-bg:      #f1f3f5;
+    --cf-border:       #dee2e6;
+    --tab-bar-height:  60px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 15px; }
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: var(--cf-gray-bg);
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+/* ── App shell ──────────────────────────────────────────────────── */
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+
+.page-content {
+    flex: 1;
+    padding-bottom: calc(var(--tab-bar-height) + 8px);
+    overflow-y: auto;
+}
+
+/* ── Top header bar ─────────────────────────────────────────────── */
+.cf-header {
+    background: var(--cf-green);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.cf-header h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: .04em;
+}
+.cf-header .player-name {
+    font-size: .8rem;
+    opacity: .85;
+}
+
+/* ── Bottom tab bar ─────────────────────────────────────────────── */
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--tab-bar-height);
+    background: #fff;
+    border-top: 1px solid var(--cf-border);
+    display: flex;
+    z-index: 200;
+    box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+}
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: transparent;
+    color: #888;
+    font-size: .65rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 2px;
+    transition: color .15s;
+    position: relative;
+}
+.tab-btn svg { width: 22px; height: 22px; }
+.tab-btn.active { color: var(--cf-green); }
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 3px;
+    background: var(--cf-green);
+    border-radius: 0 0 3px 3px;
+}
+/* Fast-track button glows when available */
+.tab-btn.ft-available {
+    color: var(--cf-gold-dark);
+    animation: pulse-gold 1.5s infinite;
+}
+.tab-btn.ft-available.active { color: var(--cf-gold-dark); }
+@keyframes pulse-gold {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .6; }
+}
+
+/* ── Cards / sections ───────────────────────────────────────────── */
+.cf-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    margin: .75rem .75rem 0;
+    overflow: hidden;
+}
+.cf-card-header {
+    background: var(--cf-green);
+    color: #fff;
+    padding: .5rem .85rem;
+    font-weight: 700;
+    font-size: .85rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.cf-card-header.gold  { background: var(--cf-gold-dark); }
+.cf-card-header.blue  { background: var(--cf-blue); }
+.cf-card-header.red   { background: var(--cf-red); }
+
+/* ── Row entry (label + value) ──────────────────────────────────── */
+.cf-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: .45rem .85rem;
+    border-bottom: 1px solid var(--cf-border);
+    gap: .5rem;
+}
+.cf-row:last-child { border-bottom: none; }
+.cf-row label { font-size: .85rem; color: #333; }
+.cf-row .amount { font-weight: 700; font-size: .9rem; text-align: right; min-width: 72px; }
+.cf-row .amount.positive { color: var(--cf-green); }
+.cf-row .amount.negative { color: var(--cf-red); }
+.cf-row .amount.neutral  { color: #555; }
+
+.cf-total-row {
+    background: var(--cf-green-pale);
+    font-weight: 700;
+}
+.cf-total-row.red-bg { background: #fde8e8; }
+.cf-total-row.gold-bg { background: #fff3e0; }
+
+/* ── Input fields ──────────────────────────────────────────────── */
+.cf-input {
+    width: 90px;
+    text-align: right;
+    border: 1px solid var(--cf-border);
+    border-radius: 6px;
+    padding: .3rem .4rem;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.cf-input:focus { outline: 2px solid var(--cf-green-light); border-color: transparent; }
+
+/* ── Cash-flow summary banner ───────────────────────────────────── */
+.cashflow-banner {
+    margin: .75rem;
+    border-radius: 10px;
+    padding: .9rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+}
+.cashflow-banner.positive {
+    background: var(--cf-green);
+    color: #fff;
+}
+.cashflow-banner.negative {
+    background: var(--cf-red);
+    color: #fff;
+}
+.cashflow-banner .label { font-size: .8rem; opacity: .85; }
+.cashflow-banner .value { font-size: 1.4rem; }
+
+/* ── Fast-track gate button ─────────────────────────────────────── */
+.ft-gate-btn {
+    display: block;
+    width: calc(100% - 1.5rem);
+    margin: .75rem;
+    padding: .85rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+}
+.ft-gate-btn.available {
+    background: var(--cf-gold-dark);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(231,111,81,.4);
+    animation: pulse-btn 1.5s infinite;
+}
+.ft-gate-btn.locked {
+    background: #ccc;
+    color: #888;
+    cursor: not-allowed;
+}
+@keyframes pulse-btn {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.02); }
+}
+
+/* ── Setup / profession picker ──────────────────────────────────── */
+.profession-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .75rem;
+}
+.profession-btn {
+    background: #fff;
+    border: 2px solid var(--cf-border);
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.profession-btn:hover, .profession-btn.selected {
+    border-color: var(--cf-green);
+    background: var(--cf-green-pale);
+}
+.profession-btn .prof-name { font-weight: 700; font-size: .95rem; }
+.profession-btn .prof-salary { font-size: .8rem; color: #555; }
+
+/* ── Deals list ─────────────────────────────────────────────────── */
+.deal-item {
+    padding: .6rem .85rem;
+    border-bottom: 1px solid var(--cf-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .5rem;
+}
+.deal-item:last-child { border-bottom: none; }
+.deal-info .deal-name { font-weight: 700; font-size: .88rem; }
+.deal-info .deal-detail { font-size: .77rem; color: #666; }
+.deal-cf { font-weight: 700; color: var(--cf-green); font-size: .9rem; white-space: nowrap; }
+.deal-cf.negative { color: var(--cf-red); }
+.deal-actions { display: flex; gap: .4rem; align-items: center; }
+
+/* ── Modal / overlay ────────────────────────────────────────────── */
+.cf-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 500;
+    display: flex; align-items: flex-end;
+}
+.cf-modal {
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 1.25rem 1rem 2rem;
+    width: 100%;
+    max-height: 85dvh;
+    overflow-y: auto;
+    animation: slide-up .25s ease-out;
+}
+@keyframes slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+.cf-modal h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--cf-green);
+}
+.cf-modal .form-label { font-size: .83rem; font-weight: 600; }
+.cf-modal .form-control { font-size: .9rem; }
+
+/* ── Options table ──────────────────────────────────────────────── */
+.options-table {
+    width: 100%;
+    font-size: .78rem;
+    border-collapse: collapse;
+}
+.options-table th {
+    background: var(--cf-blue);
+    color: #fff;
+    padding: .4rem .5rem;
+    text-align: left;
+    font-weight: 600;
+}
+.options-table td {
+    padding: .4rem .5rem;
+    border-bottom: 1px solid var(--cf-border);
+    vertical-align: middle;
+}
+.options-table tr:last-child td { border-bottom: none; }
+.options-table .call { color: var(--cf-green); font-weight: 700; }
+.options-table .put  { color: var(--cf-red);   font-weight: 700; }
+.options-table .profit   { color: var(--cf-green); font-weight: 700; }
+.options-table .loss     { color: var(--cf-red);   font-weight: 700; }
+
+/* ── Fast track ─────────────────────────────────────────────────── */
+.ft-winner-banner {
+    background: linear-gradient(135deg, var(--cf-gold), var(--cf-gold-dark));
+    color: #fff;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    margin: .75rem;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    box-shadow: 0 6px 24px rgba(244,162,97,.5);
+    animation: shine 2s infinite;
+}
+@keyframes shine {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .85; }
+}
+
+/* ── Setup page ─────────────────────────────────────────────────── */
+.setup-page {
+    padding: 1rem .75rem;
+}
+.setup-page h2 {
+    color: var(--cf-green);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: .75rem;
+}
+
+/* ── Utilities ──────────────────────────────────────────────────── */
+.text-green { color: var(--cf-green); }
+.text-red   { color: var(--cf-red); }
+.text-gold  { color: var(--cf-gold-dark); }
+.btn-cf-green {
+    background: var(--cf-green);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: .5rem 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-cf-green:hover { background: var(--cf-green-light); }
+.btn-cf-red {
+    background: var(--cf-red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: .4rem .8rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-sm-icon {
+    background: none;
+    border: 1px solid var(--cf-border);
+    border-radius: 6px;
+    padding: .25rem .4rem;
+    cursor: pointer;
+    font-size: .78rem;
+    color: #666;
+}
+.btn-sm-icon:hover { color: var(--cf-red); border-color: var(--cf-red); }
+.section-spacer { height: .75rem; }
+
+/* Blazor error boundary */
+.blazor-error-boundary {
+    background: #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+    border-radius: 8px;
+    margin: 1rem;
+}
+.blazor-error-boundary::after { content: "An error has occurred." }
