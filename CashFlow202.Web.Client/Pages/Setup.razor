@@ -133,18 +133,20 @@
 
     private RenderFragment RenderProfessionEditor() => builder =>
     {
+        var seq = 0;
+
         void Row(string label, int value, Action<int> setter)
         {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "cf-row");
-            builder.OpenElement(2, "label");
-            builder.AddContent(3, label);
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "cf-row");
+            builder.OpenElement(seq++, "label");
+            builder.AddContent(seq++, label);
             builder.CloseElement();
-            builder.OpenElement(4, "input");
-            builder.AddAttribute(5, "type", "number");
-            builder.AddAttribute(6, "class", "cf-input");
-            builder.AddAttribute(7, "value", value);
-            builder.AddAttribute(8, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this,
+            builder.OpenElement(seq++, "input");
+            builder.AddAttribute(seq++, "type", "number");
+            builder.AddAttribute(seq++, "class", "cf-input");
+            builder.AddAttribute(seq++, "value", value);
+            builder.AddAttribute(seq++, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this,
                 async e => { setter(int.TryParse(e.Value?.ToString(), out var v) ? v : 0); await GameSvc.SaveAsync(); }));
             builder.CloseElement();
             builder.CloseElement();
