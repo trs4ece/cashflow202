@@ -36,7 +36,10 @@
             display: none; left: 0; padding: .6rem 1.25rem .7rem;
             position: fixed; width: 100%; z-index: 1000;
         }
-        #blazor-error-ui .dismiss { cursor: pointer; float: right; font-weight: 700; }
+        #blazor-error-ui .dismiss {
+            background: none; border: 0; cursor: pointer; float: right;
+            font-weight: 700; padding: 0;
+        }
     </style>
 </head>
 
@@ -53,7 +56,7 @@
     <div id="blazor-error-ui">
         An unhandled error has occurred.
         <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+        <button type="button" class="dismiss" aria-label="Dismiss error">🗙</button>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker?.register('service-worker.js');</script>

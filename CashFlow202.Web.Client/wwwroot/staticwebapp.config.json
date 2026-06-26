@@ -5,12 +5,41 @@
   },
   "routes": [
     {
+      "route": "/_framework/*",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "cache-control": "no-cache"
+      }
+    },
+    {
+      "route": "/manifest.json",
+      "headers": {
+        "cache-control": "no-cache"
+      }
+    },
+    {
+      "route": "/service-worker.js",
+      "headers": {
+        "cache-control": "no-cache"
+      }
+    },
+    {
+      "route": "/service-worker-assets.js",
+      "headers": {
+        "cache-control": "no-cache"
+      }
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["anonymous"]
     }
   ],
   "globalHeaders": {
-    "cache-control": "no-cache",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin"

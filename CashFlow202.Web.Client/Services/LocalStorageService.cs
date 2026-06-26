@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Text.Json;
 
@@ -6,7 +7,7 @@ namespace CashFlow202.Web.Client.Services;
 /// <summary>
 /// Wraps browser localStorage to persist game state across refreshes.
 /// </summary>
-public class LocalStorageService(IJSRuntime js)
+public class LocalStorageService(IJSRuntime js, ILogger<LocalStorageService> logger)
 {
     private const string Key = "cashflow202_state";
     private readonly JsonSerializerOptions _opts = new()
@@ -29,8 +30,9 @@ public class LocalStorageService(IJSRuntime js)
             if (string.IsNullOrEmpty(json)) return default;
             return JsonSerializer.Deserialize<T>(json, _opts);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Unable to load saved state from localStorage.");
             return default;
         }
     }
