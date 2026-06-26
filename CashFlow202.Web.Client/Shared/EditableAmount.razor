@@ -14,9 +14,12 @@
 }
 else
 {
-    <span class="amount @AmountClass" @onclick="StartEdit" style="cursor:pointer;text-decoration:underline dotted">
+    <button type="button"
+            class="amount @AmountClass"
+            @onclick="StartEdit"
+            style="cursor:pointer;text-decoration:underline dotted;background:none;border:none;padding:0">
         $@Value.ToString("N0")
-    </span>
+    </button>
 }
 
 @code {
