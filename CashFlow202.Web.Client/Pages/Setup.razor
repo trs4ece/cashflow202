@@ -146,7 +146,7 @@
             builder.AddAttribute(seq++, "type", "number");
             builder.AddAttribute(seq++, "class", "cf-input");
             builder.AddAttribute(seq++, "value", value);
-            builder.AddAttribute(seq++, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this,
+            builder.AddAttribute(seq++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this,
                 async e => { setter(int.TryParse(e.Value?.ToString(), out var v) ? v : 0); await GameSvc.SaveAsync(); }));
             builder.CloseElement();
             builder.CloseElement();
