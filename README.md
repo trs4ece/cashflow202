@@ -15,7 +15,7 @@ A mobile-first web app that acts as a digital tracking sheet for the **Cashflow 
 ## Architecture
 
 ```
-CashFlow202.sln
+CashFlow202.slnx
 ├── CashFlow202.Web.Client/        ← Standalone Blazor WASM (deployed to Azure SWA)
 │   ├── Models/                    ← Game data models (GameState, Profession, etc.)
 │   ├── Services/                  ← LocalStorageService, GameStateService
