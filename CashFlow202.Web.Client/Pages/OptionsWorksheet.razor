@@ -1,0 +1,319 @@
+@page "/options"
+@inject GameStateService GameSvc
+@implements IDisposable
+
+<PageTitle>Options Worksheet – Cashflow 202</PageTitle>
+
+<div style="padding:.75rem .75rem 0">
+    <div style="font-size:.82rem;color:#555;background:#e8f0fe;border-radius:8px;padding:.65rem .85rem;margin-bottom:.1rem">
+        <strong>Cashflow 202 Options:</strong> Track Call and Put options here.
+        A <em>Call</em> profits when the stock price rises above strike.
+        A <em>Put</em> profits when the stock price falls below strike.
+        Each contract = 100 shares.
+    </div>
+</div>
+
+<!-- ── P&L Summary ──────────────────────────────────────────── -->
+@{
+    var closed = GameSvc.State.Options.Where(o => o.Status == OptionStatus.Closed).ToList();
+    var open = GameSvc.State.Options.Where(o => o.Status == OptionStatus.Open).ToList();
+    var totalPnl = closed.Sum(o => o.ProfitOrLoss);
+    var openCost = open.Sum(o => o.TotalCost);
+}
+
+@if (GameSvc.State.Options.Any())
+{
+    <div class="cashflow-banner @(totalPnl >= 0 ? "positive" : "negative")" style="margin-top:.75rem">
+        <div>
+            <div class="label">Realised P&amp;L (closed)</div>
+            <div class="value">$@totalPnl.ToString("N0")</div>
+        </div>
+        <div style="text-align:right">
+            <div class="label">Open Positions Cost</div>
+            <div style="font-size:1rem;font-weight:700">$@openCost.ToString("N0")</div>
+        </div>
+    </div>
+}
+
+<!-- ── Open Positions ──────────────────────────────────────── -->
+<div class="cf-card" style="margin-top:.75rem">
+    <div class="cf-card-header blue">
+        Open Positions
+        <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                @onclick="ShowAddModal">+ Add</button>
+    </div>
+
+    @if (!open.Any())
+    {
+        <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No open positions.</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto">
+            <table class="options-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Strike</th>
+                        <th>Premium</th>
+                        <th>Cost</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var opt in open)
+                    {
+                        <tr>
+                            <td><strong>@opt.Symbol</strong></td>
+                            <td class="@(opt.Type == OptionType.Call ? "call" : "put")">
+                                @opt.Type
+                            </td>
+                            <td>@opt.Contracts</td>
+                            <td>$@opt.StrikePrice.ToString("N2")</td>
+                            <td>$@opt.PremiumPaid.ToString("N2")</td>
+                            <td>$@opt.TotalCost.ToString("N0")</td>
+                            <td>
+                                <button class="btn-sm-icon" @onclick="() => OpenCloseDialog(opt)" title="Close position">💰</button>
+                                <button class="btn-sm-icon" @onclick="() => ExpireOption(opt.Id)" title="Expire">✕</button>
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrWhiteSpace(opt.Notes))
+                        {
+                            <tr>
+                                <td colspan="7" style="font-size:.75rem;color:#666;padding:.2rem .5rem .4rem">
+                                    📝 @opt.Notes
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- ── Closed / Expired Positions ─────────────────────────── -->
+@if (GameSvc.State.Options.Any(o => o.Status != OptionStatus.Open))
+{
+    <div class="cf-card" style="margin-top:.75rem;margin-bottom:.5rem">
+        <div class="cf-card-header" style="background:#555">Closed / Expired</div>
+        <div style="overflow-x:auto">
+            <table class="options-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Strike</th>
+                        <th>Sold @("@")</th>
+                        <th>P&amp;L</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var opt in GameSvc.State.Options.Where(o => o.Status != OptionStatus.Open))
+                    {
+                        <tr>
+                            <td><strong>@opt.Symbol</strong></td>
+                            <td class="@(opt.Type == OptionType.Call ? "call" : "put")">@opt.Type</td>
+                            <td>@opt.Contracts</td>
+                            <td>$@opt.StrikePrice.ToString("N2")</td>
+                            <td>
+                                @if (opt.Status == OptionStatus.Expired)
+                                {
+                                    <span style="color:#888">Expired</span>
+                                }
+                                else
+                                {
+                                    <span>$@opt.SellPrice?.ToString("N2")</span>
+                                }
+                            </td>
+                            <td class="@(opt.ProfitOrLoss >= 0 ? "profit" : "loss")">
+                                @(opt.ProfitOrLoss >= 0 ? "+" : "")$@opt.ProfitOrLoss.ToString("N0")
+                            </td>
+                            <td>
+                                <button class="btn-sm-icon" @onclick="() => DeleteOption(opt.Id)" title="Delete">🗑</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="section-spacer"></div>
+
+<!-- ── ADD OPTION MODAL ──────────────────────────────────────── -->
+@if (_showAddModal)
+{
+    <div class="cf-modal-backdrop" @onclick="CloseModal">
+        <div class="cf-modal" @onclick:stopPropagation>
+            <h2>Add Option Position</h2>
+
+            <div class="mb-2">
+                <label class="form-label">Stock Symbol</label>
+                <input class="form-control" @bind="_symbol" placeholder="e.g. MYT" style="text-transform:uppercase" />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Type</label>
+                <div style="display:flex;gap:.5rem">
+                    <button class="@(_type == OptionType.Call ? "btn-cf-green" : "btn-sm-icon")"
+                            style="flex:1;padding:.45rem"
+                            @onclick="() => _type = OptionType.Call">Call ↑</button>
+                    <button class="@(_type == OptionType.Put ? "btn-cf-red" : "btn-sm-icon")"
+                            style="flex:1;padding:.45rem"
+                            @onclick="() => _type = OptionType.Put">Put ↓</button>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Number of Contracts</label>
+                <input type="number" class="form-control" @bind="_contracts" min="1" />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Strike Price ($)</label>
+                <input type="number" class="form-control" @bind="_strike" min="0" step="0.01" />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Premium Paid per Share ($)</label>
+                <input type="number" class="form-control" @bind="_premium" min="0" step="0.01" />
+                @if (_contracts > 0 && _premium > 0)
+                {
+                    <small class="text-muted">Total cost: $@((_contracts * _premium * 100).ToString("N0"))</small>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notes <span style="font-weight:400;color:#888">(optional)</span></label>
+                <input class="form-control" @bind="_notes" placeholder="e.g. Trend indicator: upward" />
+            </div>
+
+            <div style="display:flex;gap:.5rem">
+                <button class="btn-cf-green" style="flex:1" @onclick="AddOption">Add Position</button>
+                <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── CLOSE POSITION MODAL ──────────────────────────────────── -->
+@if (_showCloseModal && _closingOpt != null)
+{
+    <div class="cf-modal-backdrop" @onclick="CloseModal">
+        <div class="cf-modal" @onclick:stopPropagation>
+            <h2>Close Position – @_closingOpt.Symbol @_closingOpt.Type</h2>
+
+            <div style="background:var(--cf-gray-bg);border-radius:8px;padding:.7rem;margin-bottom:1rem;font-size:.85rem">
+                <div>Contracts: <strong>@_closingOpt.Contracts</strong></div>
+                <div>Strike: <strong>$@_closingOpt.StrikePrice.ToString("N2")</strong></div>
+                <div>Premium paid: <strong>$@_closingOpt.PremiumPaid.ToString("N2")</strong> ($@_closingOpt.TotalCost.ToString("N0") total)</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Sell Price per Share ($)</label>
+                <input type="number" class="form-control" @bind="_sellPrice" min="0" step="0.01" />
+                @if (_sellPrice > 0 && _closingOpt != null)
+                {
+                    var proceeds = _closingOpt.Contracts * _sellPrice * 100;
+                    var pnl = proceeds - _closingOpt.TotalCost;
+                    <small class="@(pnl >= 0 ? "text-green" : "text-red")" style="font-weight:700">
+                        P&amp;L: @(pnl >= 0 ? "+" : "")$@pnl.ToString("N0")
+                    </small>
+                }
+            </div>
+
+            <div style="display:flex;gap:.5rem">
+                <button class="btn-cf-green" style="flex:1" @onclick="ClosePosition">Sell / Close</button>
+                <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Add modal
+    private bool _showAddModal;
+    private string _symbol = "";
+    private OptionType _type = OptionType.Call;
+    private int _contracts = 1;
+    private decimal _strike, _premium;
+    private string _notes = "";
+
+    // Close modal
+    private bool _showCloseModal;
+    private OptionPosition? _closingOpt;
+    private decimal _sellPrice;
+
+    protected override void OnInitialized() => GameSvc.OnChange += StateHasChanged;
+    public void Dispose() => GameSvc.OnChange -= StateHasChanged;
+    protected override async Task OnInitializedAsync() => await GameSvc.LoadAsync();
+
+    private void ShowAddModal()
+    {
+        _symbol = ""; _type = OptionType.Call; _contracts = 1; _strike = 0; _premium = 0; _notes = "";
+        _showAddModal = true;
+    }
+
+    private void OpenCloseDialog(OptionPosition opt)
+    {
+        _closingOpt = opt;
+        _sellPrice = 0;
+        _showCloseModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showAddModal = false;
+        _showCloseModal = false;
+        _closingOpt = null;
+    }
+
+    private async Task AddOption()
+    {
+        if (string.IsNullOrWhiteSpace(_symbol) || _contracts <= 0) return;
+        await GameSvc.UpdateAsync(s => s.Options.Add(new OptionPosition
+        {
+            Symbol = _symbol.ToUpper(),
+            Type = _type,
+            Contracts = _contracts,
+            StrikePrice = _strike,
+            PremiumPaid = _premium,
+            Notes = _notes,
+            Status = OptionStatus.Open,
+        }));
+        _showAddModal = false;
+    }
+
+    private async Task ClosePosition()
+    {
+        if (_closingOpt == null || _sellPrice <= 0) return;
+        await GameSvc.UpdateAsync(s =>
+        {
+            var opt = s.Options.FirstOrDefault(o => o.Id == _closingOpt.Id);
+            if (opt != null)
+            {
+                opt.SellPrice = _sellPrice;
+                opt.Status = OptionStatus.Closed;
+            }
+        });
+        CloseModal();
+    }
+
+    private async Task ExpireOption(Guid id)
+    {
+        await GameSvc.UpdateAsync(s =>
+        {
+            var opt = s.Options.FirstOrDefault(o => o.Id == id);
+            if (opt != null) opt.Status = OptionStatus.Expired;
+        });
+    }
+
+    private async Task DeleteOption(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.Options.RemoveAll(o => o.Id == id));
+}

@@ -1,0 +1,309 @@
+@page "/statement"
+@inject GameStateService GameSvc
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Financial Statement – Cashflow 202</PageTitle>
+
+@if (string.IsNullOrEmpty(GameSvc.State.Profession.Name))
+{
+    <div style="padding:2rem 1rem;text-align:center;color:#666">
+        <p>No profession selected yet.</p>
+        <button class="btn-cf-green" @onclick='() => Nav.NavigateTo("/")'>Go to Setup</button>
+    </div>
+}
+else
+{
+    <!-- Cash Flow Banner -->
+    <div class="cashflow-banner @(GameSvc.State.MonthlyCashFlow >= 0 ? "positive" : "negative")">
+        <div>
+            <div class="label">Monthly Cash Flow</div>
+            <div class="value">$@GameSvc.State.MonthlyCashFlow.ToString("N0")</div>
+        </div>
+        <div style="text-align:right">
+            <div class="label">Passive Income</div>
+            <div style="font-size:1.1rem;font-weight:700">$@GameSvc.State.TotalPassiveIncome.ToString("N0")</div>
+        </div>
+    </div>
+
+    @if (GameSvc.State.CanEnterFastTrack && !GameSvc.State.IsOnFastTrack)
+    {
+        <button class="ft-gate-btn available" @onclick='() => Nav.NavigateTo("/fasttrack")'>
+            🚀 Passive Income exceeds Expenses — Enter Fast Track!
+        </button>
+    }
+    else if (GameSvc.State.IsOnFastTrack)
+    {
+        <button class="ft-gate-btn available" style="animation:none;background:var(--cf-green)"
+                @onclick='() => Nav.NavigateTo("/fasttrack")'>
+            ✅ Currently on the Fast Track
+        </button>
+    }
+
+    <!-- ── INCOME STATEMENT ───────────────────────────────────── -->
+    <div class="cf-card">
+        <div class="cf-card-header">
+            Income Statement
+        </div>
+
+        <!-- INCOME -->
+        <div style="padding:.4rem .85rem .2rem;font-size:.72rem;font-weight:700;color:#888;letter-spacing:.07em;text-transform:uppercase">
+            Income
+        </div>
+        <div class="cf-row">
+            <label>Salary / Wages</label>
+            <span class="amount positive">$@GameSvc.State.Salary.ToString("N0")</span>
+        </div>
+
+        @foreach (var re in GameSvc.State.RealEstateAssets.Where(r => r.MonthlyCashFlow != 0))
+        {
+            <div class="cf-row">
+                <label>@re.Name (Real Estate)</label>
+                <span class="amount @(re.MonthlyCashFlow >= 0 ? "positive" : "negative")">
+                    $@re.MonthlyCashFlow.ToString("N0")
+                </span>
+            </div>
+        }
+
+        @foreach (var s in GameSvc.State.Stocks.Where(s => s.MonthlyDividend != 0))
+        {
+            <div class="cf-row">
+                <label>@s.Symbol Dividends</label>
+                <span class="amount positive">$@((int)s.MonthlyDividend).ToString("N0")</span>
+            </div>
+        }
+
+        @foreach (var b in GameSvc.State.Businesses)
+        {
+            <div class="cf-row">
+                <label>@b.Name (Business)</label>
+                <span class="amount @(b.MonthlyCashFlow >= 0 ? "positive" : "negative")">
+                    $@b.MonthlyCashFlow.ToString("N0")
+                </span>
+            </div>
+        }
+
+        @foreach (var o in GameSvc.State.OtherIncomes)
+        {
+            <div class="cf-row">
+                <label>@o.Description</label>
+                <span class="amount positive">$@o.MonthlyAmount.ToString("N0")</span>
+            </div>
+        }
+
+        @if (GameSvc.State.SavingsInterest > 0)
+        {
+            <div class="cf-row">
+                <label>Interest (Savings)</label>
+                <span class="amount positive">$@GameSvc.State.SavingsInterest.ToString("N0")</span>
+            </div>
+        }
+
+        <div class="cf-row cf-total-row">
+            <label>Total Income</label>
+            <span class="amount positive">$@GameSvc.State.TotalIncome.ToString("N0")</span>
+        </div>
+
+        <!-- EXPENSES -->
+        <div style="padding:.6rem .85rem .2rem;font-size:.72rem;font-weight:700;color:#888;letter-spacing:.07em;text-transform:uppercase">
+            Expenses
+        </div>
+        <div class="cf-row">
+            <label>Taxes</label>
+            <EditableAmount Value="GameSvc.State.Taxes"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.TaxesOverride = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Mortgage / Rent</label>
+            <EditableAmount Value="GameSvc.State.MortgageOrRent"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.MortgageOverride = v)" />
+        </div>
+        <div class="cf-row">
+            <label>School Loan</label>
+            <EditableAmount Value="GameSvc.State.SchoolLoanPayment"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.SchoolLoanPaymentOverride = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Car Payment</label>
+            <EditableAmount Value="GameSvc.State.CarPayment"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.CarPaymentOverride = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Credit Card</label>
+            <EditableAmount Value="GameSvc.State.CreditCardPayment"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.CreditCardPaymentOverride = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Retail / Other Loan</label>
+            <EditableAmount Value="GameSvc.State.RetailDebtPayment"
+                            ValueChanged="v => UpdateExpenseAsync(s => s.RetailPaymentOverride = v)" />
+        </div>
+        @if (GameSvc.State.BankLoanPayment > 0)
+        {
+            <div class="cf-row">
+                <label>Bank Loan</label>
+                <EditableAmount Value="GameSvc.State.BankLoanPayment"
+                                ValueChanged="v => UpdateExpenseAsync(s => s.BankLoanPayment = v)" />
+            </div>
+        }
+        <div class="cf-row">
+            <label>Children (@GameSvc.State.NumberOfChildren × $@GameSvc.State.Profession.CostPerChild)</label>
+            <span class="amount negative">$@GameSvc.State.ChildExpenses.ToString("N0")</span>
+        </div>
+        @if (GameSvc.State.OtherMonthlyExpenses > 0)
+        {
+            <div class="cf-row">
+                <label>Other Expenses</label>
+                <span class="amount negative">$@GameSvc.State.OtherMonthlyExpenses.ToString("N0")</span>
+            </div>
+        }
+        <div class="cf-row cf-total-row red-bg">
+            <label>Total Expenses</label>
+            <span class="amount negative">$@GameSvc.State.TotalExpenses.ToString("N0")</span>
+        </div>
+    </div>
+
+    <!-- ── BALANCE SHEET ──────────────────────────────────────── -->
+    <div class="cf-card" style="margin-top:.75rem">
+        <div class="cf-card-header gold">Balance Sheet</div>
+
+        <div style="padding:.4rem .85rem .2rem;font-size:.72rem;font-weight:700;color:#888;letter-spacing:.07em;text-transform:uppercase">
+            Assets
+        </div>
+        <div class="cf-row">
+            <label>Savings / Cash</label>
+            <EditableAmount Value="GameSvc.State.BankSavings"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.BankSavings = v)" />
+        </div>
+
+        @foreach (var s in GameSvc.State.Stocks)
+        {
+            <div class="cf-row">
+                <label>@s.Symbol (@s.Shares shares × $@s.PricePerShare.ToString("N2"))</label>
+                <span class="amount neutral">$@((int)s.TotalValue).ToString("N0")</span>
+            </div>
+        }
+
+        @foreach (var re in GameSvc.State.RealEstateAssets)
+        {
+            <div class="cf-row">
+                <label>@re.Name</label>
+                <span class="amount neutral">$@re.PurchasePrice.ToString("N0")</span>
+            </div>
+        }
+
+        @foreach (var b in GameSvc.State.Businesses)
+        {
+            <div class="cf-row">
+                <label>@b.Name (Business)</label>
+                <span class="amount neutral">$@b.DownPayment.ToString("N0")</span>
+            </div>
+        }
+
+        <div class="cf-row cf-total-row gold-bg">
+            <label>Total Assets</label>
+            <span class="amount neutral">$@GameSvc.State.TotalAssets.ToString("N0")</span>
+        </div>
+
+        <div style="padding:.6rem .85rem .2rem;font-size:.72rem;font-weight:700;color:#888;letter-spacing:.07em;text-transform:uppercase">
+            Liabilities
+        </div>
+        <div class="cf-row">
+            <label>Home Mortgage</label>
+            <EditableAmount Value="GameSvc.State.HomeMortgageBalance"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.HomeMortgageBalance = v)" />
+        </div>
+        <div class="cf-row">
+            <label>School Loan</label>
+            <EditableAmount Value="GameSvc.State.SchoolLoanBalance"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.SchoolLoanBalance = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Car Loan</label>
+            <EditableAmount Value="GameSvc.State.CarLoanBalance"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.CarLoanBalance = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Credit Card</label>
+            <EditableAmount Value="GameSvc.State.CreditCardBalance"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.CreditCardBalance = v)" />
+        </div>
+        <div class="cf-row">
+            <label>Retail Debt</label>
+            <EditableAmount Value="GameSvc.State.RetailDebtBalance"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.RetailDebtBalance = v)" />
+        </div>
+        @if (GameSvc.State.BankLoanBalance > 0)
+        {
+            <div class="cf-row">
+                <label>Bank Loan</label>
+                <EditableAmount Value="GameSvc.State.BankLoanBalance"
+                                ValueChanged="v => GameSvc.UpdateAsync(s => s.BankLoanBalance = v)" />
+            </div>
+        }
+
+        @foreach (var re in GameSvc.State.RealEstateAssets.Where(r => r.MortgageBalance > 0))
+        {
+            <div class="cf-row">
+                <label>@re.Name (Mortgage)</label>
+                <span class="amount negative">$@re.MortgageBalance.ToString("N0")</span>
+            </div>
+        }
+
+        @foreach (var b in GameSvc.State.Businesses.Where(b => b.LiabilityBalance > 0))
+        {
+            <div class="cf-row">
+                <label>@b.Name (Liability)</label>
+                <span class="amount negative">$@b.LiabilityBalance.ToString("N0")</span>
+            </div>
+        }
+
+        <div class="cf-row cf-total-row red-bg">
+            <label>Total Liabilities</label>
+            <span class="amount negative">$@GameSvc.State.TotalLiabilities.ToString("N0")</span>
+        </div>
+
+        <div class="cf-row" style="background:#f0f7ff">
+            <label style="font-weight:700">Net Worth</label>
+            <span class="amount @(GameSvc.State.TotalAssets - GameSvc.State.TotalLiabilities >= 0 ? "positive" : "negative")" style="font-size:1rem">
+                $@((GameSvc.State.TotalAssets - GameSvc.State.TotalLiabilities).ToString("N0"))
+            </span>
+        </div>
+    </div>
+
+    <!-- Children editor -->
+    <div class="cf-card" style="margin-top:.75rem;margin-bottom:.5rem">
+        <div class="cf-card-header">Children</div>
+        <div class="cf-row">
+            <label>Number of Children</label>
+            <input type="number" class="cf-input" min="0" max="10"
+                   value="@GameSvc.State.NumberOfChildren"
+                   @oninput="OnChildrenChange" />
+        </div>
+        <div class="cf-row">
+            <label>Extra Child Expenses</label>
+            <EditableAmount Value="GameSvc.State.ExtraChildExpenses"
+                            ValueChanged="v => GameSvc.UpdateAsync(s => s.ExtraChildExpenses = v)" />
+        </div>
+    </div>
+
+    <div class="section-spacer"></div>
+}
+
+@code {
+    protected override void OnInitialized() => GameSvc.OnChange += StateHasChanged;
+    public void Dispose() => GameSvc.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await GameSvc.LoadAsync();
+
+    private async Task OnChildrenChange(ChangeEventArgs e)
+    {
+        var n = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+        await GameSvc.UpdateAsync(s => s.NumberOfChildren = Math.Max(0, n));
+    }
+
+    private async Task UpdateExpenseAsync(Action<GameState> setter)
+    {
+        await GameSvc.UpdateAsync(setter);
+    }
+}

@@ -1,0 +1,329 @@
+@page "/fasttrack"
+@inject GameStateService GameSvc
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Fast Track – Cashflow 202</PageTitle>
+
+@if (!GameSvc.State.CanEnterFastTrack && !GameSvc.State.IsOnFastTrack)
+{
+    <!-- Not yet eligible -->
+    <div style="padding:2rem 1rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:.75rem">🔒</div>
+        <h2 style="color:var(--cf-green);font-size:1.1rem">Fast Track is Locked</h2>
+        <p style="color:#666;font-size:.88rem;max-width:300px;margin:.5rem auto">
+            You need your <strong>Passive Income</strong> to exceed your <strong>Total Expenses</strong> to unlock the Fast Track.
+        </p>
+        <div style="background:#fff;border-radius:10px;padding:1rem;max-width:300px;margin:1rem auto;box-shadow:0 1px 6px rgba(0,0,0,.08)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+                <span style="font-size:.85rem;color:#666">Passive Income</span>
+                <span style="font-weight:700;color:var(--cf-green)">$@GameSvc.State.TotalPassiveIncome.ToString("N0")</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:.75rem">
+                <span style="font-size:.85rem;color:#666">Total Expenses</span>
+                <span style="font-weight:700;color:var(--cf-red)">$@GameSvc.State.TotalExpenses.ToString("N0")</span>
+            </div>
+            <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden">
+                @{
+                    var pct = GameSvc.State.TotalExpenses > 0
+                        ? Math.Min(100, (int)(GameSvc.State.TotalPassiveIncome * 100.0 / GameSvc.State.TotalExpenses))
+                        : 0;
+                }
+                <div style="height:100%;width:@pct%;background:var(--cf-green);transition:width .5s;border-radius:4px"></div>
+            </div>
+            <p style="font-size:.78rem;color:#888;margin:.5rem 0 0;text-align:center">
+                @pct% of needed passive income
+            </p>
+        </div>
+        <button class="btn-cf-green" @onclick='() => Nav.NavigateTo("/deals")'
+                style="margin-top:.5rem;padding:.6rem 1.5rem">
+            Add More Deals
+        </button>
+    </div>
+}
+else
+{
+    <!-- Activate / On Fast Track -->
+    @if (!GameSvc.State.IsOnFastTrack)
+    {
+        <div style="padding:1.25rem 1rem;text-align:center;background:linear-gradient(135deg,var(--cf-green),var(--cf-green-light));color:#fff;margin-bottom:.75rem">
+            <div style="font-size:2rem;margin-bottom:.4rem">🎉</div>
+            <h2 style="margin:0;font-size:1.15rem">You Escaped the Rat Race!</h2>
+            <p style="font-size:.85rem;opacity:.9;margin:.4rem 0 1rem">
+                Passive Income ($@GameSvc.State.TotalPassiveIncome.ToString("N0")) ≥ Expenses ($@GameSvc.State.TotalExpenses.ToString("N0"))
+            </p>
+            <button @onclick="EnterFastTrack"
+                    style="background:#fff;color:var(--cf-green);border:none;border-radius:8px;padding:.75rem 2rem;font-weight:700;font-size:1rem;cursor:pointer">
+                Enter the Fast Track!
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Winner check -->
+        @if (GameSvc.State.HasWon)
+        {
+            <div class="ft-winner-banner">
+                🏆 You Won! Dream achieved!<br />
+                <span style="font-size:.85rem;font-weight:400">
+                    Passive income covers all expenses + dream monthly costs.
+                </span>
+            </div>
+        }
+        else
+        {
+            <div style="padding:.75rem 1rem;background:linear-gradient(135deg,var(--cf-gold),var(--cf-gold-dark));color:#fff">
+                <div style="font-size:.78rem;opacity:.85;text-transform:uppercase;letter-spacing:.07em">Fast Track</div>
+                <div style="font-size:1.05rem;font-weight:700;margin-top:.15rem">Working toward your dream…</div>
+            </div>
+        }
+    }
+
+    @if (GameSvc.State.IsOnFastTrack)
+    {
+        <!-- ── Dream Setup ─────────────────────────────────────── -->
+        <div class="cf-card" style="margin-top:.75rem">
+            <div class="cf-card-header" style="background:var(--cf-gold-dark)">Your Dream</div>
+            <div class="cf-row">
+                <label>Dream Description</label>
+                <input class="form-control" style="max-width:180px;font-size:.85rem"
+                       value="@GameSvc.State.FastTrack.Dream"
+                       @oninput="e => UpdateFastTrack(ft => ft.Dream = e.Value?.ToString() ?? string.Empty)" />
+            </div>
+            <div class="cf-row">
+                <label>Dream Total Cost ($)</label>
+                <EditableAmount Value="GameSvc.State.FastTrack.DreamCost"
+                                ValueChanged="v => UpdateFastTrack(ft => ft.DreamCost = v)" />
+            </div>
+            <div class="cf-row">
+                <label>Dream Monthly Expense ($)</label>
+                <EditableAmount Value="GameSvc.State.FastTrack.DreamMonthlyExpense"
+                                ValueChanged="v => UpdateFastTrack(ft => ft.DreamMonthlyExpense = v)" />
+            </div>
+        </div>
+
+        <!-- ── Fast Track Summary ─────────────────────────────── -->
+        <div class="cf-card" style="margin-top:.75rem">
+            <div class="cf-card-header">Fast Track Summary</div>
+            <div class="cf-row">
+                <label>Rat Race Passive Income</label>
+                <span class="amount positive">$@GameSvc.State.TotalPassiveIncome.ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row">
+                <label>Big Deal Income</label>
+                <span class="amount positive">$@GameSvc.State.FastTrack.BigDeals.Sum(d => d.MonthlyCashFlow).ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row cf-total-row">
+                <label>Total Passive Income</label>
+                <span class="amount positive">$@GameSvc.State.FastTrackTotalPassive.ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row">
+                <label>Existing Expenses</label>
+                <span class="amount negative">$@GameSvc.State.TotalExpenses.ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row">
+                <label>Dream Monthly Cost</label>
+                <span class="amount negative">$@GameSvc.State.FastTrack.DreamMonthlyExpense.ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row cf-total-row red-bg">
+                <label>Monthly Need</label>
+                <span class="amount negative">$@GameSvc.State.FastTrackMonthlyNeeds.ToString("N0")/mo</span>
+            </div>
+            <div class="cf-row" style="background:@(GameSvc.State.HasWon ? "var(--cf-green-pale)" : "#fde8e8")">
+                <label style="font-weight:700">Surplus / (Gap)</label>
+                @{
+                    var surplus = GameSvc.State.FastTrackTotalPassive - GameSvc.State.FastTrackMonthlyNeeds;
+                }
+                <span class="amount @(surplus >= 0 ? "positive" : "negative")" style="font-size:1rem">
+                    @(surplus >= 0 ? "+" : "")$@surplus.ToString("N0")/mo
+                </span>
+            </div>
+        </div>
+
+        <!-- ── Big Deals ──────────────────────────────────────── -->
+        <div class="cf-card" style="margin-top:.75rem">
+            <div class="cf-card-header" style="background:var(--cf-gold-dark)">
+                Big Deals
+                <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                        @onclick="ShowAddBigDeal">+ Add</button>
+            </div>
+
+            @if (!GameSvc.State.FastTrack.BigDeals.Any())
+            {
+                <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">
+                    No Big Deals yet. Big Deals on the Fast Track generate large cash flows.
+                </div>
+            }
+            else
+            {
+                @foreach (var bd in GameSvc.State.FastTrack.BigDeals)
+                {
+                    <div class="deal-item">
+                        <div class="deal-info">
+                            <div class="deal-name">@bd.Name</div>
+                            <div class="deal-detail">Down: $@bd.DownPayment.ToString("N0") | Total: $@bd.TotalCost.ToString("N0")</div>
+                        </div>
+                        <div class="deal-actions">
+                            <span class="deal-cf">$@bd.MonthlyCashFlow.ToString("N0")/mo</span>
+                            <button class="btn-sm-icon" @onclick="() => DeleteBigDeal(bd.Id)">✕</button>
+                        </div>
+                    </div>
+                }
+                <div class="cf-row cf-total-row gold-bg">
+                    <label>Total Big Deal Cash Flow</label>
+                    <span class="amount positive">$@GameSvc.State.FastTrack.BigDeals.Sum(d => d.MonthlyCashFlow).ToString("N0")/mo</span>
+                </div>
+            }
+        </div>
+
+        <!-- ── Charities ──────────────────────────────────────── -->
+        <div class="cf-card" style="margin-top:.75rem;margin-bottom:.5rem">
+            <div class="cf-card-header" style="background:#555">
+                Charities / Donations
+                <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                        @onclick="ShowAddCharity">+ Add</button>
+            </div>
+            @if (!GameSvc.State.FastTrack.Charities.Any())
+            {
+                <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No charitable donations yet.</div>
+            }
+            else
+            {
+                @foreach (var c in GameSvc.State.FastTrack.Charities)
+                {
+                    <div class="deal-item">
+                        <div class="deal-info"><div class="deal-name">@c.Name</div></div>
+                        <div class="deal-actions">
+                            <span class="deal-cf">$@c.MonthlyDonation.ToString("N0")/mo</span>
+                            <button class="btn-sm-icon" @onclick="() => DeleteCharity(c.Id)">✕</button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="section-spacer"></div>
+    }
+}
+
+<!-- ── BIG DEAL MODAL ─────────────────────────────────────────── -->
+@if (_showBigDealModal)
+{
+    <div class="cf-modal-backdrop" @onclick="CloseModal">
+        <div class="cf-modal" @onclick:stopPropagation>
+            <h2>Add Big Deal</h2>
+            <div class="mb-2">
+                <label class="form-label">Description</label>
+                <input class="form-control" @bind="_bdName" placeholder="e.g. Commercial property" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Down Payment ($)</label>
+                <input type="number" class="form-control" @bind="_bdDown" min="0" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Total Cost ($)</label>
+                <input type="number" class="form-control" @bind="_bdTotal" min="0" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Monthly Cash Flow ($)</label>
+                <input type="number" class="form-control" @bind="_bdCf" />
+            </div>
+            <div style="display:flex;gap:.5rem">
+                <button class="btn-cf-green" style="flex:1" @onclick="AddBigDeal">Add Deal</button>
+                <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── CHARITY MODAL ─────────────────────────────────────────── -->
+@if (_showCharityModal)
+{
+    <div class="cf-modal-backdrop" @onclick="CloseModal">
+        <div class="cf-modal" @onclick:stopPropagation>
+            <h2>Add Charity / Donation</h2>
+            <div class="mb-2">
+                <label class="form-label">Organisation Name</label>
+                <input class="form-control" @bind="_charityName" placeholder="e.g. Local food bank" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Monthly Donation ($)</label>
+                <input type="number" class="form-control" @bind="_charityAmt" min="0" />
+            </div>
+            <div style="display:flex;gap:.5rem">
+                <button class="btn-cf-green" style="flex:1" @onclick="AddCharity">Add</button>
+                <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _showBigDealModal, _showCharityModal;
+    private string _bdName = "";
+    private int _bdDown, _bdTotal, _bdCf;
+    private string _charityName = "";
+    private int _charityAmt;
+
+    protected override void OnInitialized() => GameSvc.OnChange += StateHasChanged;
+    public void Dispose() => GameSvc.OnChange -= StateHasChanged;
+    protected override async Task OnInitializedAsync() => await GameSvc.LoadAsync();
+
+    private async Task EnterFastTrack()
+    {
+        await GameSvc.UpdateAsync(s => s.IsOnFastTrack = true);
+    }
+
+    private async Task UpdateFastTrack(Action<FastTrackState> mutate)
+    {
+        await GameSvc.UpdateAsync(s => mutate(s.FastTrack));
+    }
+
+    private void ShowAddBigDeal()
+    {
+        _bdName = ""; _bdDown = 0; _bdTotal = 0; _bdCf = 0;
+        _showBigDealModal = true;
+    }
+
+    private void ShowAddCharity()
+    {
+        _charityName = ""; _charityAmt = 0;
+        _showCharityModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showBigDealModal = false;
+        _showCharityModal = false;
+    }
+
+    private async Task AddBigDeal()
+    {
+        if (string.IsNullOrWhiteSpace(_bdName)) return;
+        await GameSvc.UpdateAsync(s => s.FastTrack.BigDeals.Add(new BigDeal
+        {
+            Name = _bdName,
+            DownPayment = _bdDown,
+            TotalCost = _bdTotal,
+            MonthlyCashFlow = _bdCf,
+        }));
+        _showBigDealModal = false;
+    }
+
+    private async Task AddCharity()
+    {
+        if (string.IsNullOrWhiteSpace(_charityName)) return;
+        await GameSvc.UpdateAsync(s => s.FastTrack.Charities.Add(new Charity
+        {
+            Name = _charityName,
+            MonthlyDonation = _charityAmt,
+        }));
+        _showCharityModal = false;
+    }
+
+    private async Task DeleteBigDeal(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.FastTrack.BigDeals.RemoveAll(d => d.Id == id));
+
+    private async Task DeleteCharity(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.FastTrack.Charities.RemoveAll(c => c.Id == id));
+}

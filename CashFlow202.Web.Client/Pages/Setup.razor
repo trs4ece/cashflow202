@@ -1,0 +1,172 @@
+@page "/"
+@inject GameStateService GameSvc
+@inject NavigationManager Nav
+
+<PageTitle>Setup – Cashflow 202</PageTitle>
+
+<div class="setup-page">
+    <h2>Player Setup</h2>
+
+    <div class="cf-card" style="margin:0 0 .75rem">
+        <div class="cf-card-header">Your Name</div>
+        <div style="padding:.75rem">
+            <input class="form-control" placeholder="Enter player name…"
+                   value="@GameSvc.State.PlayerName"
+                   @oninput="OnNameChange" />
+        </div>
+    </div>
+
+    <h2>Choose Profession</h2>
+    <p style="font-size:.82rem;color:#666;margin:.25rem 0 .75rem">
+        Select your profession card, then adjust values to match your card exactly.
+    </p>
+
+    <div class="profession-list">
+        @foreach (var prof in Professions.All)
+        {
+            <button class="profession-btn @(GameSvc.State.Profession.Name == prof.Name ? "selected" : "")"
+                    @onclick="() => SelectProfession(prof)">
+                <div class="prof-name">@prof.Name</div>
+                <div class="prof-salary">Salary: $@prof.Salary.ToString("N0") | Cash Flow: $@prof.MonthlyCashFlow.ToString("N0")</div>
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(GameSvc.State.Profession.Name))
+    {
+        <div style="margin-top:1rem">
+            <div class="cf-card" style="margin:0 0 .75rem">
+                <div class="cf-card-header">Profession Card Values</div>
+                @RenderProfessionEditor()
+            </div>
+
+            <button class="btn-cf-green" style="width:100%;padding:.85rem;font-size:1rem;border-radius:10px"
+                    @onclick="GoToStatement">
+                ✓ Start Tracking
+            </button>
+        </div>
+    }
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--cf-border);padding-top:1rem">
+        <button class="btn-cf-red" style="width:100%;padding:.7rem;font-size:.9rem;border-radius:8px"
+                @onclick="ConfirmReset">
+            🔄 Reset Game
+        </button>
+        @if (_confirmReset)
+        {
+            <div style="margin-top:.5rem;background:#fde8e8;border-radius:8px;padding:.75rem">
+                <p style="font-size:.85rem;font-weight:600;color:var(--cf-red);margin:0 0 .5rem">
+                    Reset all game data? This cannot be undone.
+                </p>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-cf-red" style="flex:1" @onclick="DoReset">Yes, Reset</button>
+                    <button class="btn-cf-green" style="flex:1" @onclick="() => _confirmReset = false">Cancel</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _confirmReset;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GameSvc.LoadAsync();
+    }
+
+    private async Task OnNameChange(ChangeEventArgs e)
+    {
+        await GameSvc.UpdateAsync(s => s.PlayerName = e.Value?.ToString() ?? "");
+    }
+
+    private async Task SelectProfession(Profession prof)
+    {
+        await GameSvc.UpdateAsync(s =>
+        {
+            s.Profession = new Profession
+            {
+                Name = prof.Name,
+                Salary = prof.Salary,
+                Taxes = prof.Taxes,
+                MortgageOrRent = prof.MortgageOrRent,
+                SchoolLoanPayment = prof.SchoolLoanPayment,
+                CarPayment = prof.CarPayment,
+                CreditCardPayment = prof.CreditCardPayment,
+                RetailDebtPayment = prof.RetailDebtPayment,
+                OtherExpenses = prof.OtherExpenses,
+                Savings = prof.Savings,
+                SchoolLoanBalance = prof.SchoolLoanBalance,
+                CarLoanBalance = prof.CarLoanBalance,
+                CreditCardBalance = prof.CreditCardBalance,
+                RetailDebtBalance = prof.RetailDebtBalance,
+                HomeMortgageBalance = prof.HomeMortgageBalance,
+                NumberOfChildren = prof.NumberOfChildren,
+                CostPerChild = prof.CostPerChild,
+            };
+            s.NumberOfChildren = prof.NumberOfChildren;
+            s.BankSavings = prof.Savings;
+            s.SchoolLoanBalance = prof.SchoolLoanBalance;
+            s.CarLoanBalance = prof.CarLoanBalance;
+            s.CreditCardBalance = prof.CreditCardBalance;
+            s.RetailDebtBalance = prof.RetailDebtBalance;
+            s.HomeMortgageBalance = prof.HomeMortgageBalance;
+            // Reset overrides so profession card values are used
+            s.TaxesOverride = -1;
+            s.MortgageOverride = -1;
+            s.SchoolLoanPaymentOverride = -1;
+            s.CarPaymentOverride = -1;
+            s.CreditCardPaymentOverride = -1;
+            s.RetailPaymentOverride = -1;
+        });
+    }
+
+    private void GoToStatement() => Nav.NavigateTo("/statement");
+
+    private void ConfirmReset() => _confirmReset = true;
+
+    private async Task DoReset()
+    {
+        await GameSvc.ResetAsync();
+        _confirmReset = false;
+    }
+
+    private RenderFragment RenderProfessionEditor() => builder =>
+    {
+        var seq = 0;
+
+        void Row(string label, int value, Action<int> setter)
+        {
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "cf-row");
+            builder.OpenElement(seq++, "label");
+            builder.AddContent(seq++, label);
+            builder.CloseElement();
+            builder.OpenElement(seq++, "input");
+            builder.AddAttribute(seq++, "type", "number");
+            builder.AddAttribute(seq++, "class", "cf-input");
+            builder.AddAttribute(seq++, "value", value);
+            builder.AddAttribute(seq++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this,
+                async e => { setter(int.TryParse(e.Value?.ToString(), out var v) ? v : 0); await GameSvc.SaveAsync(); }));
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        var p = GameSvc.State.Profession;
+        Row("Salary", p.Salary, v => p.Salary = v);
+        Row("Taxes", p.Taxes, v => p.Taxes = v);
+        Row("Mortgage / Rent", p.MortgageOrRent, v => p.MortgageOrRent = v);
+        Row("School Loan payment", p.SchoolLoanPayment, v => p.SchoolLoanPayment = v);
+        Row("Car payment", p.CarPayment, v => p.CarPayment = v);
+        Row("Credit Card payment", p.CreditCardPayment, v => p.CreditCardPayment = v);
+        Row("Retail / Other Loan", p.RetailDebtPayment, v => p.RetailDebtPayment = v);
+        Row("Other expenses", p.OtherExpenses, v => p.OtherExpenses = v);
+        Row("# Children", p.NumberOfChildren, v => p.NumberOfChildren = v);
+        Row("Cost per child", p.CostPerChild, v => p.CostPerChild = v);
+        Row("School Loan balance", p.SchoolLoanBalance, v => p.SchoolLoanBalance = v);
+        Row("Car Loan balance", p.CarLoanBalance, v => p.CarLoanBalance = v);
+        Row("Credit Card balance", p.CreditCardBalance, v => p.CreditCardBalance = v);
+        Row("Retail Debt balance", p.RetailDebtBalance, v => p.RetailDebtBalance = v);
+        Row("Home Mortgage balance", p.HomeMortgageBalance, v => p.HomeMortgageBalance = v);
+    };
+}

@@ -1,0 +1,412 @@
+@page "/deals"
+@inject GameStateService GameSvc
+@implements IDisposable
+
+<PageTitle>Deals – Cashflow 202</PageTitle>
+
+<!-- ── Passive income summary ─────────────────────────────────── -->
+<div class="cashflow-banner @(GameSvc.State.TotalPassiveIncome >= GameSvc.State.TotalExpenses ? "positive" : "negative")">
+    <div>
+        <div class="label">Total Passive Income</div>
+        <div class="value">$@GameSvc.State.TotalPassiveIncome.ToString("N0")</div>
+    </div>
+    <div style="text-align:right">
+        <div class="label">vs Expenses</div>
+        <div style="font-size:1rem;font-weight:700">$@GameSvc.State.TotalExpenses.ToString("N0")</div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     REAL ESTATE
+     ══════════════════════════════════════════════════════════════ -->
+<div class="cf-card">
+    <div class="cf-card-header">
+        Real Estate
+        <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                @onclick="() => ShowAddDeal(DealKind.RealEstate)">+ Add</button>
+    </div>
+
+    @if (!GameSvc.State.RealEstateAssets.Any())
+    {
+        <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No real estate yet.</div>
+    }
+    else
+    {
+        @foreach (var re in GameSvc.State.RealEstateAssets)
+        {
+            <div class="deal-item">
+                <div class="deal-info">
+                    <div class="deal-name">@re.Name</div>
+                    <div class="deal-detail">
+                        Cost: $@re.PurchasePrice.ToString("N0") | Down: $@re.DownPayment.ToString("N0") | Mtg: $@re.MortgageBalance.ToString("N0")
+                    </div>
+                </div>
+                <div class="deal-actions">
+                    <span class="deal-cf @(re.MonthlyCashFlow < 0 ? "negative" : "")">
+                        $@re.MonthlyCashFlow.ToString("N0")/mo
+                    </span>
+                    <button class="btn-sm-icon" @onclick="() => DeleteRealEstate(re.Id)" title="Remove">✕</button>
+                </div>
+            </div>
+        }
+        <div class="cf-row cf-total-row">
+            <label>Total RE Cash Flow</label>
+            <span class="amount positive">$@GameSvc.State.RealEstateCashFlow.ToString("N0")/mo</span>
+        </div>
+    }
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     STOCKS / FUNDS / CDs
+     ══════════════════════════════════════════════════════════════ -->
+<div class="cf-card" style="margin-top:.75rem">
+    <div class="cf-card-header blue">
+        Stocks / Funds / CDs
+        <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                @onclick="() => ShowAddDeal(DealKind.Stock)">+ Add</button>
+    </div>
+
+    @if (!GameSvc.State.Stocks.Any())
+    {
+        <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No stocks yet.</div>
+    }
+    else
+    {
+        @foreach (var s in GameSvc.State.Stocks)
+        {
+            <div class="deal-item">
+                <div class="deal-info">
+                    <div class="deal-name">@s.Symbol – @s.Name</div>
+                    <div class="deal-detail">
+                        @s.Shares shares × $@s.PricePerShare.ToString("N2") = $@((int)s.TotalValue).ToString("N0")
+                        @if (s.DividendPerShare > 0)
+                        {
+                            <span> | Div: $@((int)s.MonthlyDividend).ToString("N0")/mo</span>
+                        }
+                    </div>
+                </div>
+                <div class="deal-actions">
+                    <button class="btn-sm-icon" @onclick="() => EditStock(s)" title="Edit price">✎</button>
+                    <button class="btn-sm-icon" @onclick="() => DeleteStock(s.Id)" title="Remove">✕</button>
+                </div>
+            </div>
+        }
+        <div class="cf-row cf-total-row">
+            <label>Total Stock Value</label>
+            <span class="amount neutral">$@((int)GameSvc.State.Stocks.Sum(s => s.TotalValue)).ToString("N0")</span>
+        </div>
+    }
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     BUSINESSES
+     ══════════════════════════════════════════════════════════════ -->
+<div class="cf-card" style="margin-top:.75rem;margin-bottom:.5rem">
+    <div class="cf-card-header" style="background:var(--cf-gold-dark)">
+        Businesses
+        <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                @onclick="() => ShowAddDeal(DealKind.Business)">+ Add</button>
+    </div>
+
+    @if (!GameSvc.State.Businesses.Any())
+    {
+        <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No businesses yet.</div>
+    }
+    else
+    {
+        @foreach (var b in GameSvc.State.Businesses)
+        {
+            <div class="deal-item">
+                <div class="deal-info">
+                    <div class="deal-name">@b.Name</div>
+                    <div class="deal-detail">Down: $@b.DownPayment.ToString("N0") | Liability: $@b.LiabilityBalance.ToString("N0")</div>
+                </div>
+                <div class="deal-actions">
+                    <span class="deal-cf @(b.MonthlyCashFlow < 0 ? "negative" : "")">
+                        $@b.MonthlyCashFlow.ToString("N0")/mo
+                    </span>
+                    <button class="btn-sm-icon" @onclick="() => DeleteBusiness(b.Id)" title="Remove">✕</button>
+                </div>
+            </div>
+        }
+        <div class="cf-row cf-total-row">
+            <label>Total Business Cash Flow</label>
+            <span class="amount positive">$@GameSvc.State.BusinessCashFlow.ToString("N0")/mo</span>
+        </div>
+    }
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     OTHER PASSIVE INCOME
+     ══════════════════════════════════════════════════════════════ -->
+<div class="cf-card" style="margin-top:.75rem;margin-bottom:.5rem">
+    <div class="cf-card-header" style="background:#555">
+        Other Passive Income
+        <button class="btn-sm-icon" style="color:#fff;border-color:rgba(255,255,255,.4)"
+                @onclick="() => ShowAddDeal(DealKind.Other)">+ Add</button>
+    </div>
+
+    @if (!GameSvc.State.OtherIncomes.Any())
+    {
+        <div style="padding:.75rem .85rem;font-size:.82rem;color:#888">No other income sources.</div>
+    }
+    else
+    {
+        @foreach (var o in GameSvc.State.OtherIncomes)
+        {
+            <div class="deal-item">
+                <div class="deal-info">
+                    <div class="deal-name">@o.Description</div>
+                </div>
+                <div class="deal-actions">
+                    <span class="deal-cf">$@o.MonthlyAmount.ToString("N0")/mo</span>
+                    <button class="btn-sm-icon" @onclick="() => DeleteOther(o.Id)" title="Remove">✕</button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<div class="section-spacer"></div>
+
+<!-- ── ADD DEAL MODAL ─────────────────────────────────────────── -->
+@if (_showModal)
+{
+    <div class="cf-modal-backdrop" @onclick="CloseModal">
+        <div class="cf-modal" @onclick:stopPropagation>
+            @if (_addKind == DealKind.RealEstate)
+            {
+                <h2>Add Real Estate</h2>
+                <div class="mb-2">
+                    <label class="form-label">Property Name</label>
+                    <input class="form-control" @bind="_reName" placeholder="e.g. 4-plex on Oak St." />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Purchase Price ($)</label>
+                    <input type="number" class="form-control" @bind="_reCost" min="0" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Down Payment ($)</label>
+                    <input type="number" class="form-control" @bind="_reDown" min="0" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Mortgage Balance ($)</label>
+                    <input type="number" class="form-control" @bind="_reMortgage" min="0" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Monthly Cash Flow ($)</label>
+                    <input type="number" class="form-control" @bind="_reCf" />
+                </div>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-cf-green" style="flex:1" @onclick="AddRealEstate">Add Property</button>
+                    <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+                </div>
+            }
+            else if (_addKind == DealKind.Stock)
+            {
+                <h2>@(_editingStock != null ? "Update Stock" : "Add Stock / Fund / CD")</h2>
+                <div class="mb-2">
+                    <label class="form-label">Symbol / Ticker</label>
+                    <input class="form-control" @bind="_stockSymbol" placeholder="e.g. MYT" style="text-transform:uppercase" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Name / Description</label>
+                    <input class="form-control" @bind="_stockName" placeholder="e.g. MyTech Corp." />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Shares / Units</label>
+                    <input type="number" class="form-control" @bind="_stockShares" min="0" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Price per Share ($)</label>
+                    <input type="number" class="form-control" @bind="_stockPrice" min="0" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Monthly Dividend per Share ($) <span style="font-weight:400;color:#888">(0 if none)</span></label>
+                    <input type="number" class="form-control" @bind="_stockDiv" min="0" step="0.01" />
+                </div>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-cf-green" style="flex:1" @onclick="AddOrUpdateStock">
+                        @(_editingStock != null ? "Update" : "Add")
+                    </button>
+                    <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+                </div>
+            }
+            else if (_addKind == DealKind.Business)
+            {
+                <h2>Add Business</h2>
+                <div class="mb-2">
+                    <label class="form-label">Business Name</label>
+                    <input class="form-control" @bind="_bizName" placeholder="e.g. Car wash" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Down Payment / Cost ($)</label>
+                    <input type="number" class="form-control" @bind="_bizDown" min="0" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Liability / Loan Balance ($)</label>
+                    <input type="number" class="form-control" @bind="_bizLiability" min="0" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Monthly Cash Flow ($)</label>
+                    <input type="number" class="form-control" @bind="_bizCf" />
+                </div>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-cf-green" style="flex:1" @onclick="AddBusiness">Add Business</button>
+                    <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+                </div>
+            }
+            else if (_addKind == DealKind.Other)
+            {
+                <h2>Add Other Passive Income</h2>
+                <div class="mb-2">
+                    <label class="form-label">Description</label>
+                    <input class="form-control" @bind="_otherDesc" placeholder="e.g. Royalty payments" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Monthly Amount ($)</label>
+                    <input type="number" class="form-control" @bind="_otherAmt" min="0" />
+                </div>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-cf-green" style="flex:1" @onclick="AddOther">Add Income</button>
+                    <button class="btn-sm-icon" style="flex:.5" @onclick="CloseModal">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private enum DealKind { RealEstate, Stock, Business, Other }
+
+    // Modal state
+    private bool _showModal;
+    private DealKind _addKind;
+
+    // Real estate fields
+    private string _reName = "";
+    private int _reCost, _reDown, _reMortgage, _reCf;
+
+    // Stock fields
+    private StockPosition? _editingStock;
+    private string _stockSymbol = "", _stockName = "";
+    private int _stockShares;
+    private decimal _stockPrice, _stockDiv;
+
+    // Business fields
+    private string _bizName = "";
+    private int _bizDown, _bizLiability, _bizCf;
+
+    // Other fields
+    private string _otherDesc = "";
+    private int _otherAmt;
+
+    protected override void OnInitialized() => GameSvc.OnChange += StateHasChanged;
+    public void Dispose() => GameSvc.OnChange -= StateHasChanged;
+    protected override async Task OnInitializedAsync() => await GameSvc.LoadAsync();
+
+    private void ShowAddDeal(DealKind kind)
+    {
+        _addKind = kind;
+        _showModal = true;
+        // Reset fields
+        _reName = ""; _reCost = 0; _reDown = 0; _reMortgage = 0; _reCf = 0;
+        _editingStock = null; _stockSymbol = ""; _stockName = ""; _stockShares = 0; _stockPrice = 0; _stockDiv = 0;
+        _bizName = ""; _bizDown = 0; _bizLiability = 0; _bizCf = 0;
+        _otherDesc = ""; _otherAmt = 0;
+    }
+
+    private void EditStock(StockPosition s)
+    {
+        _editingStock = s;
+        _addKind = DealKind.Stock;
+        _showModal = true;
+        _stockSymbol = s.Symbol;
+        _stockName = s.Name;
+        _stockShares = s.Shares;
+        _stockPrice = s.PricePerShare;
+        _stockDiv = s.DividendPerShare;
+    }
+
+    private void CloseModal() => _showModal = false;
+
+    private async Task AddRealEstate()
+    {
+        if (string.IsNullOrWhiteSpace(_reName)) return;
+        await GameSvc.UpdateAsync(s => s.RealEstateAssets.Add(new RealEstate
+        {
+            Name = _reName,
+            PurchasePrice = _reCost,
+            DownPayment = _reDown,
+            MortgageBalance = _reMortgage,
+            MonthlyCashFlow = _reCf,
+        }));
+        _showModal = false;
+    }
+
+    private async Task AddOrUpdateStock()
+    {
+        if (string.IsNullOrWhiteSpace(_stockSymbol)) return;
+        await GameSvc.UpdateAsync(s =>
+        {
+            if (_editingStock != null)
+            {
+                var existing = s.Stocks.FirstOrDefault(x => x.Id == _editingStock.Id);
+                if (existing != null)
+                {
+                    existing.Symbol = _stockSymbol.ToUpper();
+                    existing.Name = _stockName;
+                    existing.Shares = _stockShares;
+                    existing.PricePerShare = _stockPrice;
+                    existing.DividendPerShare = _stockDiv;
+                    return;
+                }
+            }
+            s.Stocks.Add(new StockPosition
+            {
+                Symbol = _stockSymbol.ToUpper(),
+                Name = _stockName,
+                Shares = _stockShares,
+                PricePerShare = _stockPrice,
+                DividendPerShare = _stockDiv,
+            });
+        });
+        _showModal = false;
+    }
+
+    private async Task AddBusiness()
+    {
+        if (string.IsNullOrWhiteSpace(_bizName)) return;
+        await GameSvc.UpdateAsync(s => s.Businesses.Add(new BusinessIncome
+        {
+            Name = _bizName,
+            DownPayment = _bizDown,
+            LiabilityBalance = _bizLiability,
+            MonthlyCashFlow = _bizCf,
+        }));
+        _showModal = false;
+    }
+
+    private async Task AddOther()
+    {
+        if (string.IsNullOrWhiteSpace(_otherDesc)) return;
+        await GameSvc.UpdateAsync(s => s.OtherIncomes.Add(new OtherIncome
+        {
+            Description = _otherDesc,
+            MonthlyAmount = _otherAmt,
+        }));
+        _showModal = false;
+    }
+
+    private async Task DeleteRealEstate(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.RealEstateAssets.RemoveAll(r => r.Id == id));
+
+    private async Task DeleteStock(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.Stocks.RemoveAll(r => r.Id == id));
+
+    private async Task DeleteBusiness(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.Businesses.RemoveAll(r => r.Id == id));
+
+    private async Task DeleteOther(Guid id) =>
+        await GameSvc.UpdateAsync(s => s.OtherIncomes.RemoveAll(r => r.Id == id));
+}

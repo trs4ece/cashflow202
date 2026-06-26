@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#2d6a4f" />
+    <title>Cashflow 202 Tracker</title>
+    <base href="/" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="CashFlow202.Web.Client.styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        /* Loading screen */
+        #app { display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
+        .loading-wrapper { text-align: center; color: #2d6a4f; }
+        .loading-wrapper svg { width: 120px; }
+        .loading-progress { position: relative; }
+        .loading-progress circle {
+            fill: none; stroke: #d8f3dc; stroke-width: 0.06rem;
+            transform-origin: 50% 50%; transform: rotate(-90deg);
+        }
+        .loading-progress circle:last-child {
+            stroke: #2d6a4f;
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray 0.05s ease-in-out;
+        }
+        .loading-progress-text::after { content: var(--blazor-load-percentage-text, "Loading\2026"); }
+        #blazor-error-ui {
+            background: #ffecec; border-top: 1px solid #dc3545;
+            bottom: 0; box-shadow: 0 -1px 2px rgba(0,0,0,.2);
+            display: none; left: 0; padding: .6rem 1.25rem .7rem;
+            position: fixed; width: 100%; z-index: 1000;
+        }
+        #blazor-error-ui .dismiss {
+            background: none; border: 0; cursor: pointer; float: right;
+            font-weight: 700; padding: 0;
+        }
+        #blazor-error-ui .dismiss:focus-visible {
+            outline: 2px solid #2d6a4f;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-wrapper">
+            <svg class="loading-progress" viewBox="0 0 100 100">
+                <circle r="40" cx="50" cy="50" />
+                <circle r="40" cx="50" cy="50" />
+            </svg>
+            <p class="loading-progress-text" style="margin-top:.5rem;font-weight:600;font-size:.9rem"></p>
+        </div>
+    </div>
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <button type="button" class="dismiss" aria-label="Dismiss error">&times;</button>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker?.register('service-worker.js');</script>
+</body>
+
+</html>

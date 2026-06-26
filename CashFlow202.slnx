@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/CashFlow202.Web.Server/">
+    <Project Path="CashFlow202.Web.Server/CashFlow202.Web.csproj" />
+  </Folder>
+  <Project Path="CashFlow202.AppHost/CashFlow202.AppHost.csproj" />
+  <Project Path="CashFlow202.ServiceDefaults/CashFlow202.ServiceDefaults.csproj" />
+  <Project Path="CashFlow202.Web.Client/CashFlow202.Web.Client.csproj" />
+</Solution>

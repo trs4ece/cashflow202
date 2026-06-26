@@ -1,0 +1,56 @@
+@* Tap-to-edit number field that shows as a value label until tapped. *@
+
+@if (_editing)
+{
+    <input @ref="_inputRef"
+           type="number"
+           class="cf-input"
+           value="@Value"
+           @onchange="OnChange"
+           @onblur="OnBlur"
+           @onkeydown="OnKeyDown"
+           inputmode="numeric"
+           min="0" />
+}
+else
+{
+    <button type="button"
+            class="amount @AmountClass"
+            @onclick="StartEdit"
+            style="cursor:pointer;text-decoration:underline dotted;background:none;border:none;padding:0;font:inherit">
+        $@Value.ToString("N0")
+    </button>
+}
+
+@code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+
+    private bool _editing;
+    private ElementReference _inputRef;
+
+    private string AmountClass => Value < 0 ? "negative" : "neutral";
+
+    private async Task StartEdit()
+    {
+        _editing = true;
+        await Task.Delay(50);
+        try { await _inputRef.FocusAsync(); } catch { }
+    }
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+        {
+            await ValueChanged.InvokeAsync(v);
+        }
+        _editing = false;
+    }
+
+    private void OnBlur() => _editing = false;
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Escape") _editing = false;
+    }
+}
